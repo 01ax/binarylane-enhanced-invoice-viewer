@@ -1,0 +1,19 @@
+{
+  auto_https off
+}
+
+:80 {
+  basicauth {
+    admin __ADMIN_PASSWORD_HASH__
+  }
+
+  encode zstd gzip
+  root * /srv
+  file_server
+
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer"
+  }
+}

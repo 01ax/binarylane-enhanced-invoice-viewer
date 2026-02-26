@@ -1,0 +1,9 @@
+services:
+  invoice-viewer:
+    image: ghcr.io/01ax/binarylane-enhanced-invoice-viewer:latest
+    container_name: binarylane-invoice-viewer
+    restart: unless-stopped
+    ports:
+      - "29741:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BinaryLane Invoice Viewer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>BinaryLane Invoice Viewer</h1>
+    <p class="small">Developed by <a href="https://github.com/01ax" target="_blank" rel="noopener noreferrer">01ax</a>.</p>
+    <p class="muted">Client-side only. Your API key stays in this browser session and is auto-cleared after inactivity.</p>
+    <p class="small notice">GST-aware display: per-line GST is only shown as derived when invoice constraints reconcile; otherwise line items remain ex-GST.</p>
+
+    <section class="card tabs-card">
+      <div class="row gap">
+        <button id="tabInvoices" type="button" class="tab-btn active">Invoices</button>
+        <button id="tabServer" type="button" class="tab-btn secondary">Server Cost Query</button>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <label for="apiKey">BinaryLane API Key</label>
+      <div class="row">
+        <input id="apiKey" type="password" placeholder="Paste API key" autocomplete="off" spellcheck="false" />
+        <button id="toggleKey" class="eye-btn" type="button" aria-label="Show API key" title="Show API key">
+          <svg class="eye-svg eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/><circle cx="12" cy="12" r="2.2"/></svg>
+          <svg class="eye-svg eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.1 3.5 1 4.6l3 3C2.8 8.7 1.7 10.2 1 12c1.1 3.6 5.5 7 11 7 2.2 0 4.2-.5 6-1.5l4 4 1.1-1.1L2.1 3.5Zm10.8 10.8a2.9 2.9 0 0 1-3.2-3.2l3.2 3.2Zm7.7-2.3c-.8-2.6-3.5-5-6.8-5.7l1.8 1.8a4 4 0 0 1 2.1 2.1l2.9 2.9Z"/></svg>
+        </button>
+      </div>
+      <div class="row gap">
+        <label><input type="checkbox" id="remember" checked /> Keep key in this tab session</label>
+      </div>
+      <div class="row gap key-actions">
+        <button id="fetchBtn" type="button">Fetch invoices</button>
+        <button id="clearBtn" type="button" class="secondary">Forget key + clear data</button>
+      </div>
+      <p id="status" class="muted"></p>
+    </section>
+
+    <section id="invoicesPane" class="tab-pane">
+      <section class="card">
+        <div class="row wrap">
+          <label>Range
+            <select id="range">
+              <option value="6">Last 6 months</option>
+              <option value="prev6">Previous 6 months</option>
+              <option value="12">Last 12 months</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <label>Search
+            <input id="search" type="text" placeholder="invoice number / item text" />
+          </label>
+        </div>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <section class="card">
+        <h2>Analytics</h2>
+        <div class="analytics-grid">
+          <div class="panel">
+            <h3 id="monthlyTitle">Monthly Spend</h3>
+            <div id="monthlyBars"></div>
+          </div>
+          <div class="panel">
+            <h3>Top Services (by spend)</h3>
+            <div id="topItems"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="invoices-title"><span>Invoices</span><span class="gst-legend"><span class="gst-mark">†</span> = value includes GST</span></h2>
+        <div id="invoiceList"></div>
+        <div class="row wrap" style="margin-top:12px; gap:10px;">
+          <label>Per page
+            <select id="viewPerPage">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+          </label>
+          <label>Page
+            <input id="viewPage" type="number" min="1" value="1" style="width:90px" />
+          </label>
+          <button id="applyViewPage" type="button" class="secondary">Refresh view</button>
+          <span id="viewMeta" class="small"></span>
+        </div>
+      </section>
+    </section>
+
+    <section id="serverPane" class="tab-pane hidden">
+      <section class="card">
+        <h2>Server Cost Query</h2>
+        <p class="small notice">Fetch loads all invoices first. Date filters are optional; leave blank to query all time.</p>
+        <p class="small">Groups are inferred from invoice_items order: server line starts a group; following add-ons belong to that server until next server line.</p>
+        <div class="row wrap">
+          <label>Server
+            <select id="serverSelect"></select>
+          </label>
+          <label>From
+            <input id="fromDate" type="date" />
+          </label>
+          <label>To
+            <input id="toDate" type="date" />
+          </label>
+          <label><input id="showCancelled" type="checkbox" /> Show cancelled servers</label>
+          <button id="runQueryBtn" type="button">Run query</button>
+          <button id="exportQueryBtn" type="button" class="secondary">Export CSV</button>
+        </div>
+        <div class="stats" id="querySummary" style="margin-top:10px"></div>
+        <div id="queryTable" style="margin-top:10px"></div>
+      </section>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

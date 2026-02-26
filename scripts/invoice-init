@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+TEMPLATE="$PROJECT_DIR/Caddyfile.template"
+OUTPUT="$PROJECT_DIR/Caddyfile"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Error: docker is required." >&2
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Error: docker compose plugin is required." >&2
+  exit 1
+fi
+
+if [[ ! -f "$TEMPLATE" ]]; then
+  echo "Error: missing template $TEMPLATE" >&2
+  exit 1
+fi
+
+read -r -s -p "Set admin password for BinaryLane Invoice Viewer: " PASS1
+echo
+read -r -s -p "Confirm password: " PASS2
+echo
+
+if [[ -z "$PASS1" ]]; then
+  echo "Error: password cannot be empty." >&2
+  exit 1
+fi
+
+if [[ "$PASS1" != "$PASS2" ]]; then
+  echo "Error: passwords do not match." >&2
+  exit 1
+fi
+
+HASH="$(docker run --rm caddy:2.8-alpine caddy hash-password --plaintext "$PASS1")"
+unset PASS1 PASS2
+
+sed "s|__ADMIN_PASSWORD_HASH__|$HASH|g" "$TEMPLATE" > "$OUTPUT"
+chmod 600 "$OUTPUT"
+
+echo "Generated $OUTPUT with admin user + bcrypt hash."
+
+docker compose -f "$PROJECT_DIR/docker-compose.yml" pull
+
+docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d
+
+echo "Started BinaryLane Invoice Viewer on port 29741"

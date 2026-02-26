@@ -36,6 +36,9 @@ if [[ "$PASS1" != "$PASS2" ]]; then
   exit 1
 fi
 
+echo "Preparing Caddy helper image (first run may take 1-2 minutes)..."
+docker image inspect caddy:2.8-alpine >/dev/null 2>&1 || docker pull caddy:2.8-alpine >/dev/null
+
 HASH="$(docker run --rm caddy:2.8-alpine caddy hash-password --plaintext "$PASS1")"
 unset PASS1 PASS2
 
@@ -43,9 +46,21 @@ sed "s|__ADMIN_PASSWORD_HASH__|$HASH|g" "$TEMPLATE" > "$OUTPUT"
 chmod 600 "$OUTPUT"
 
 echo "Generated $OUTPUT with admin user + bcrypt hash."
-
+echo "Pulling app image..."
 docker compose -f "$PROJECT_DIR/docker-compose.yml" pull
 
+echo "Starting service..."
 docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d
 
-echo "Started BinaryLane Invoice Viewer on port 29741"
+echo "Waiting for local health check on http://127.0.0.1:29741 ..."
+for _ in {1..30}; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:29741 || true)"
+  if [[ "$code" == "401" || "$code" == "200" ]]; then
+    echo "Ready: BinaryLane Invoice Viewer is up on port 29741."
+    echo "Login with username: admin"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "Warning: service started but readiness check timed out. Check logs with: docker logs binarylane-invoice-viewer"

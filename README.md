@@ -10,11 +10,23 @@ Secure, self-hosted deployment package for the BinaryLane Invoice Viewer.
 
 ## Quick start (customer copy/paste)
 
-### Option A: Cloud-init bootstrap on Ubuntu host
+### Option A: BL Portal cloud-init (recommended)
+
+1. Create Ubuntu 24.04 VPS.
+2. Paste `cloud-init.yaml` contents into **User Data** in the portal.
+3. After first login, run:
+
+```bash
+cloud-init status --wait
+invoice-init
+```
+
+### Option B: Run cloud-init manually on an existing Ubuntu host
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/01ax/binarylane-enhanced-invoice-viewer/main/cloud-init.yaml -o /tmp/binarylane-invoice-viewer-cloud-init.yaml
-sudo cloud-init single --file /tmp/binarylane-invoice-viewer-cloud-init.yaml --name cc_runcmd
+sudo cloud-init single --file /tmp/binarylane-invoice-viewer-cloud-init.yaml --name cc_runcmd --frequency always
+cloud-init status --wait
 invoice-init
 ```
 

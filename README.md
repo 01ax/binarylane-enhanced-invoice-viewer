@@ -8,45 +8,63 @@ Secure, self-hosted deployment package for the BinaryLane Invoice Viewer.
 - GHCR image: `ghcr.io/01ax/binarylane-enhanced-invoice-viewer`
 - Maintained by [01ax](https://github.com/01ax)
 
-## Quick start (customer copy/paste)
+## Install methods
 
-### Option A: BL Portal cloud-init (recommended)
+### 1) Cloud-init (new server in BL portal)
 
-1. Create Ubuntu 24.04 VPS.
-2. Paste `cloud-init.yaml` contents into **User Data** in the portal.
-3. After first login, run:
+- Create an Ubuntu 24.04 VPS
+- Paste the contents of `cloud-init.yaml` into **User Data**
+- After first login run:
 
 ```bash
-cloud-init status --wait
 invoice-init
 ```
 
-### Option B: Run cloud-init manually on an existing Ubuntu host
+### 2) One-liner installer script (existing server)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/01ax/binarylane-enhanced-invoice-viewer/main/cloud-init.yaml -o /tmp/binarylane-invoice-viewer-cloud-init.yaml
-sudo cloud-init single --file /tmp/binarylane-invoice-viewer-cloud-init.yaml --name cc_runcmd --frequency always
-cloud-init status --wait
+curl -fsSL https://raw.githubusercontent.com/01ax/binarylane-enhanced-invoice-viewer/main/install.sh | sudo bash
 invoice-init
 ```
 
-### Option B: Manual install on existing host
+### 3) Manual install (existing server)
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y git docker.io docker-compose-plugin
+sudo apt-get install -y ca-certificates curl git
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc >/dev/null
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable --now docker
+
+sudo rm -rf /opt/binarylane-invoice-viewer
 sudo git clone https://github.com/01ax/binarylane-enhanced-invoice-viewer.git /opt/binarylane-invoice-viewer
 sudo chmod +x /opt/binarylane-invoice-viewer/scripts/invoice-init
+
+cat <<'EOF' | sudo tee /usr/local/bin/invoice-init >/dev/null
+#!/usr/bin/env bash
+set -euo pipefail
 cd /opt/binarylane-invoice-viewer
-sudo ./scripts/invoice-init
+exec ./scripts/invoice-init "$@"
+EOF
+sudo chmod +x /usr/local/bin/invoice-init
+
+invoice-init
 ```
 
-After setup, access:
+## Access
 
-- `http://<server-ip>:29741`
+After `invoice-init` completes:
+
+- URL: `http://<server-ip>:29741`
 - Username: `admin`
-- Password: (the one you set in `invoice-init`)
+- Password: the one set in `invoice-init`
 
 ## Update
 
@@ -54,7 +72,7 @@ After setup, access:
 cd /opt/binarylane-invoice-viewer
 sudo git fetch --tags origin
 sudo git pull --ff-only
-sudo ./scripts/invoice-init
+sudo invoice-init
 ```
 
 ## Rollback
@@ -63,7 +81,7 @@ sudo ./scripts/invoice-init
 cd /opt/binarylane-invoice-viewer
 sudo git fetch --tags origin
 sudo git checkout v1.0.0
-sudo ./scripts/invoice-init
+sudo invoice-init
 ```
 
 ## Development notes

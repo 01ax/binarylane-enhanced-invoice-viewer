@@ -24,19 +24,5 @@ runcmd:
     exec ./scripts/invoice-init "$@"
     EOF
   - chmod +x /usr/local/bin/invoice-init
-  - |
-    cat >/etc/motd <<'EOF'
-    BinaryLane Invoice Viewer bootstrap is running.
 
-    IMPORTANT:
-    - First boot can take 3-10 minutes while packages are installed.
-    - Wait until cloud-init is complete:
-        cloud-init status --wait
-    - Then run:
-        invoice-init
-
-    App URL after invoice-init:
-      http://<server-ip>:29741
-    EOF
-
-final_message: "BinaryLane Invoice Viewer bootstrap complete. Run: cloud-init status --wait && invoice-init"
+final_message: "BinaryLane Invoice Viewer bootstrap complete. Run: invoice-init"

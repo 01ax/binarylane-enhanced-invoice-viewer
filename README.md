@@ -1,4 +1,4 @@
-<img width="1012" height="1110" alt="image" src="https://github.com/user-attachments/assets/85eaa1a1-69cb-432d-aad5-f910f4ac779c" /># BinaryLane Invoice Viewer
+# BinaryLane Invoice Viewer
 
 Secure, self-hosted deployment package for the Enhanced BinaryLane Invoice Viewer.
 

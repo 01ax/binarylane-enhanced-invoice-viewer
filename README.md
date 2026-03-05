@@ -1,19 +1,22 @@
-# BinaryLane Invoice Viewer
+<img width="1012" height="1110" alt="image" src="https://github.com/user-attachments/assets/85eaa1a1-69cb-432d-aad5-f910f4ac779c" /># BinaryLane Invoice Viewer
 
-Secure, self-hosted deployment package for the BinaryLane Invoice Viewer.
-
-Invoice viewer:
-<img width="1011" height="1229" alt="image" src="https://github.com/user-attachments/assets/5644369d-b3fc-4fea-9c6a-dbaa9e12b5d4" />
-
-Service breakdown:
-<img width="1012" height="1110" alt="image" src="https://github.com/user-attachments/assets/08e8b7b5-ea22-4e57-b4d6-ff89678141ab" />
-
+Secure, self-hosted deployment package for the Enhanced BinaryLane Invoice Viewer.
 
 - App title/branding: **BinaryLane Invoice Viewer**
 - Basic auth via Caddy (`admin` user, password set interactively)
 - Dockerized deployment (host `29741` -> container `80`)
 - GHCR image: `ghcr.io/01ax/binarylane-enhanced-invoice-viewer`
 - Maintained by [01ax](https://github.com/01ax)
+
+**Invoice viewer:**
+
+<img width="1011" height="1229" alt="image" src="https://github.com/user-attachments/assets/5644369d-b3fc-4fea-9c6a-dbaa9e12b5d4" />
+
+**Service breakdown:**
+
+<img width="1012" height="1110" alt="image" src="https://github.com/user-attachments/assets/08e8b7b5-ea22-4e57-b4d6-ff89678141ab" />
+
+---
 
 ## Install methods
 

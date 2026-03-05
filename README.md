@@ -18,20 +18,20 @@ Secure, self-hosted deployment package for the Enhanced BinaryLane Invoice Viewe
 
 The BinaryLane Enhanced Invoice Viewer is an invoice analysis/reporting tool for BinaryLane invoice data. It gives a clearer breakdown of costs than a raw invoice view, with a focus on readability and tax correctness.
 
-##What it does
+## What it does
 
-    Presents invoice data in a more usable dashboard-style view
-    Adds GST-aware calculations at line/group level
-    Uses fail-closed reconciliation rules so totals don’t silently drift if something doesn’t reconcile cleanly
-    Marks GST-inclusive values with a small † and tooltip detail (before tax / GST / after tax)
-    Improves analytics readability across time ranges (better month/year labeling, better panel behavior)
+- Presents invoice data in a more usable dashboard-style view.
+- Adds GST-aware calculations at line/group level.
+- Uses fail-closed reconciliation rules so totals don’t silently drift if something doesn’t reconcile cleanly.
+- Marks GST-inclusive values with a small `†` and tooltip detail (before tax / GST / after tax).
+- Improves analytics readability across time ranges (better month/year labeling, better panel behavior).
 
-##Key benefits
+## Key benefits
 
-    Faster cost understanding: less manual cross-checking
-    Higher confidence in totals: safer GST handling + reconciliation guardrails
-    Cleaner reporting UX: easier for ops/support/billing users to scan trends
-    Practical deployment: packaged as OSS with multiple install paths (cloud-init, one-liner, manual), so it’s easier to roll out where needed
+- **Faster cost understanding:** less manual cross-checking.
+- **Higher confidence in totals:** safer GST handling + reconciliation guardrails.
+- **Cleaner reporting UX:** easier for ops/support/billing users to scan trends.
+- **Practical deployment:** packaged as OSS with multiple install paths (cloud-init, one-liner, manual), making rollout easier.
 
 ---
 

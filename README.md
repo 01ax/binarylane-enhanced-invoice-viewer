@@ -111,6 +111,44 @@ sudo git checkout v1.0.0
 sudo invoice-init
 ```
 
+## Invoice GST debugging CLI
+
+A local debugging helper is included at `tools/invoice-debug.js`.
+
+It can:
+- fetch invoices from BinaryLane API (Bearer token from `BL_API_KEY`), or
+- read invoice JSON from a local file (`--input`) or stdin (`--input -`),
+- compare GST methods:
+  - `reconciled`: line-level GST allocation reconciled to invoice tax total (same logic as app)
+  - `per-server`: GST per server = `round(server_ex_gst * 0.10)`
+  - `both`: side-by-side comparison with cent deltas
+
+### Usage
+
+```bash
+# From API
+BL_API_KEY=your_key_here node tools/invoice-debug.js --invoice 02781372 --ref acc101036 --mode both
+
+# Filter to one server
+BL_API_KEY=your_key_here node tools/invoice-debug.js --invoice 02781372 --ref acc101036 --server "my-server-name" --mode both
+
+# From local JSON
+node tools/invoice-debug.js --input ./invoice.json --invoice 02781372 --mode both
+
+# JSON output
+BL_API_KEY=your_key_here node tools/invoice-debug.js --invoice 02781372 --ref acc101036 --mode both --json
+```
+
+Supported flags:
+- `--invoice <number>`
+- `--ref <customer reference>`
+- `--server <name>` (optional)
+- `--mode <reconciled|per-server|both>`
+- `--json`
+- `--input <path|->`
+
+The tool prints per-server Ex GST, GST, Inc GST, method deltas, and invoice-level cent validation so you can quickly explain rounding differences.
+
 ## Development notes
 
 - `scripts/invoice-init` never writes plaintext credentials.

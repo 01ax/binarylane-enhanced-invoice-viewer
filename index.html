@@ -3,13 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BinaryLane Invoice Viewer</title>
+  <title>BinaryLane Invoice Viewer v5</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <main class="container">
-    <h1>BinaryLane Invoice Viewer</h1>
-    <p class="small">Developed by <a href="https://github.com/01ax" target="_blank" rel="noopener noreferrer">01ax</a>.</p>
+    <div class="row" style="justify-content:space-between; align-items:flex-start; gap:12px;">
+      <div>
+        <h1>BinaryLane Invoice Viewer v5</h1>
+        <p class="small">Developed by <a href="https://github.com/01ax" target="_blank" rel="noopener noreferrer">01ax</a>.</p>
+      </div>
+      <button id="helpBtn" type="button" class="secondary">Help</button>
+    </div>
     <p class="muted">Client-side only. Your API key stays in this browser session and is auto-cleared after inactivity.</p>
     <p class="small notice">GST-aware display: per-line GST is only shown as derived when invoice constraints reconcile; otherwise line items remain ex-GST.</p>
 
@@ -62,11 +67,13 @@
         <h2>Analytics</h2>
         <div class="analytics-grid">
           <div class="panel">
-            <h3 id="monthlyTitle">Monthly Spend</h3>
+            <h3 id="monthlyTitle">Monthly Spend (inc GST)</h3>
+            <div class="small gst-legend" style="margin-bottom:8px;"><span class="gst-mark">†</span> = value includes GST</div>
             <div id="monthlyBars"></div>
           </div>
           <div class="panel">
-            <h3>Top Services (by spend)</h3>
+            <h3>Top Services (by spend, inc GST)</h3>
+            <div class="small gst-legend" style="margin-bottom:8px;"><span class="gst-mark">†</span> = value includes GST</div>
             <div id="topItems"></div>
           </div>
         </div>
@@ -74,6 +81,7 @@
 
       <section class="card">
         <h2 class="invoices-title"><span>Invoices</span><span class="gst-legend"><span class="gst-mark">†</span> = value includes GST</span></h2>
+        <div class="small" style="margin:-4px 0 8px 0;"><span class="amount-tip" title="Invoice total stays matched to the invoice. Service group headers are displayed using standard 10% GST on the grouped ex-GST amount, then rounded to 2 decimals, so server totals read the way accounting expects.">Invoice total matches the invoice; service group totals use standard grouped GST rounding for readability.</span></div>
         <div id="invoiceList"></div>
         <div class="row wrap" style="margin-top:12px; gap:10px;">
           <label>Per page
@@ -98,9 +106,14 @@
         <h2>Server Cost Query</h2>
         <p class="small notice">Fetch loads all invoices first. Date filters are optional; leave blank to query all time.</p>
         <p class="small">Groups are inferred from invoice_items order: server line starts a group; following add-ons belong to that server until next server line.</p>
+        <p class="small">Server list order prefers BinaryLane server IDs when available, with observed invoice order used as a fallback.</p>
         <div class="row wrap">
-          <label>Server
-            <select id="serverSelect"></select>
+          <label class="server-picker">Server
+            <button id="serverPickerBtn" type="button" class="server-picker-btn">
+              <span id="serverPickerLabel">Click to search and choose a server</span>
+            </button>
+            <select id="serverSelect" class="hidden"></select>
+            <span class="small">Search opens in a popup and filters live as you type.</span>
           </label>
           <label>From
             <input id="fromDate" type="date" />
@@ -109,7 +122,12 @@
             <input id="toDate" type="date" />
           </label>
           <label><input id="showCancelled" type="checkbox" /> Show cancelled servers</label>
-          <button id="runQueryBtn" type="button">Run query</button>
+          <label>GST mode
+            <select id="serverGstMode">
+              <option value="per-server" selected>Customer-style grouped GST (recommended)</option>
+              <option value="reconciled">Invoice-reconciled source data</option>
+            </select>
+          </label>
           <button id="exportQueryBtn" type="button" class="secondary">Export CSV</button>
         </div>
         <div class="stats" id="querySummary" style="margin-top:10px"></div>
@@ -117,6 +135,50 @@
       </section>
     </section>
   </main>
+
+  <div id="serverSearchModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="serverSearchTitle">
+    <div class="modal-card server-search-modal-card">
+      <div class="row server-search-head">
+        <h2 id="serverSearchTitle" style="margin:0;">Search servers by name</h2>
+        <button id="serverSearchCloseBtn" type="button" class="modal-close-btn" aria-label="Close search">×</button>
+      </div>
+      <div class="small" style="margin-top:8px;">Type part of a server name. Matching results update as you type.</div>
+      <input id="serverSearch" type="text" class="server-search-input" placeholder="Search servers..." autocomplete="off" spellcheck="false" />
+      <div class="server-search-section-head"><div class="server-search-section-label">SERVERS</div><div id="serverSearchCount" class="server-search-count small"></div></div>
+      <div id="serverSearchResults" class="server-search-results"></div>
+    </div>
+  </div>
+
+  <div id="queryGroupModal" class="query-group-floating hidden" role="dialog" aria-labelledby="queryGroupTitle">
+    <div id="queryGroupPanel" class="modal-card query-group-modal-card">
+      <div id="queryGroupDragHandle" class="row server-search-head query-group-drag-handle">
+        <h2 id="queryGroupTitle" style="margin:0;">Grouped usage details</h2>
+        <button id="queryGroupCloseBtn" type="button" class="modal-close-btn" aria-label="Close grouped usage details">×</button>
+      </div>
+      <div id="queryGroupModalMeta" class="small" style="margin-top:8px;"></div>
+      <div id="queryGroupModalBody" class="query-group-modal-body"></div>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-card">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <h2 id="helpTitle" style="margin:0;">Invoice Viewer Help</h2>
+        <button id="helpCloseBtn" type="button" class="secondary">Close</button>
+      </div>
+      <div class="small" style="margin-top:10px; line-height:1.5;">
+        <p><strong>What does † mean?</strong><br/><span class="gst-mark">†</span> means this value already includes GST.</p>
+        <p><strong>Why can totals differ by 1 cent?</strong><br/>GST can be rounded at different steps:</p>
+        <ul>
+          <li><strong>Customer-style grouped GST (recommended):</strong> sums the server's ex-GST amount, applies 10% GST to that grouped amount, then rounds the displayed total to 2 decimals.</li>
+          <li><strong>Invoice-reconciled source data:</strong> keeps the underlying invoice allocation logic, but displayed server totals still use grouped GST rounding for consistency.</li>
+        </ul>
+        <p><strong>Decimal rounding</strong><br/>Displayed values use standard 2-decimal rounding. For grouped server totals, the tooltip also shows the 10% GST working before rounding. Example: 81.719 → 81.72 and 81.714 → 81.71.</p>
+        <p><strong>Tip</strong><br/>For customer/accounting-style server totals, use <em>Customer-style grouped GST</em>.</p>
+      </div>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
 </body>
 </html>

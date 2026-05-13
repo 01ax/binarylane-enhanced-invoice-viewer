@@ -172,19 +172,39 @@ function parsePeriodEnd(name){
   return Number.isNaN(+d) ? null : d;
 }
 
+function looksLikeStandaloneTimedService(name){
+  return /\(\d{1,2}\s+[A-Za-z]+\s+\d{4}\s+to\s+\d{1,2}\s+[A-Za-z]+\s+\d{4}\s+-\s*[0-9.]+\s+hours\)/i.test(String(name||''));
+}
+
 function groupInvoiceByServerOrder(items){
   const groups=[]; let current=null;
   for(let idx=0; idx<(items||[]).length; idx++){
     const it = items[idx];
-    const name=(it.name||'Unnamed item').trim(); const amount=Number(it.amount||0); const includesTax=Boolean(it.amount_includes_tax);
-    if(isPrimaryServiceLine(name)){
-      current={ server: canonicalServiceName(name), rows:[] };
+    const name=(it.name||'Unnamed item').trim();
+    const amount=Number(it.amount||0);
+    const includesTax=Boolean(it.amount_includes_tax);
+    const primary = isPrimaryServiceLine(name);
+    const standaloneTimed = !primary && looksLikeStandaloneTimedService(name);
+    const ref = lineItemReference(it);
+
+    let startNew = false;
+    if(!current) startNew = true;
+    else if(ref && current.reference) startNew = ref !== current.reference;
+    else if(ref && !current.reference) startNew = true;
+    else if(!ref && current.reference) startNew = true;
+    else if(primary || standaloneTimed) startNew = true;
+
+    if(startNew){
+      current = {
+        server: primary ? canonicalServiceName(name) : name,
+        rows: [],
+        reference: ref
+      };
       groups.push(current);
-      current.rows.push({idx,name,amount,includesTax,type:'primary'});
-    } else {
-      if(!current){ current={server:'Unassigned account items',rows:[]}; groups.push(current); }
-      current.rows.push({idx,name,amount,includesTax,type:'addon'});
     }
+
+    const rowType = (primary || standaloneTimed || !current.rows.length) ? 'primary' : 'addon';
+    current.rows.push({idx,name,amount,includesTax,type:rowType});
   }
   return groups;
 }
@@ -391,9 +411,16 @@ function renderAnalytics(){
   $('topItems').innerHTML = top.length ? top.map(([n,a])=>`<div class="item-row"><div>${esc(n)}</div><div><strong>${markedAmount(a.display.after,a.display.before,a.display.gst,{kind:'grouped-service',...a.display})}</strong></div></div>`).join('') : '<p class="muted">No service-level data in selected range.</p>';
 }
 
+function lineItemReference(it){
+  const raw = it?.reference_number ?? it?.referenceNumber ?? it?.ReferenceNumber ?? it?.reference ?? it?.Reference ?? it?.ref ?? null;
+  const s = String(raw ?? '').trim();
+  return s || null;
+}
+
 function groupLineItems(items, taxModel){
-  const groups=[]; const by=new Map(); let last=null;
-  const ensure=(k,kind='service')=>{ if(!by.has(k)){ const o={name:k,total:0,ex:0,tax:0,rows:[],kind,display:null}; by.set(k,o); groups.push(o);} return by.get(k); };
+  const groups=[];
+  let current=null;
+
   for(let i=0;i<(items||[]).length;i++){
     const it=items[i];
     const name=(it.name||'Unnamed item').trim();
@@ -401,23 +428,47 @@ function groupLineItems(items, taxModel){
     const ex = dec(cents(amount));
     const tax = taxModel.ok ? dec(taxModel.gstByIdx.get(i)||0) : 0;
     const inc = dec(cents(amount) + (taxModel.ok ? (taxModel.gstByIdx.get(i)||0) : 0));
-    if(isPrimaryServiceLine(name)){ const key=canonicalServiceName(name); const g=ensure(key,'service'); g.total+=inc; g.ex+=ex; g.tax+=tax; g.rows.push({name,amount:inc,ex,tax,type:'primary'}); last=key; continue; }
-    const g=ensure(last || 'General account charges', last ? 'service':'general'); g.total+=inc; g.ex+=ex; g.tax+=tax; g.rows.push({name,amount:inc,ex,tax,type:'addon'});
+    const primary = isPrimaryServiceLine(name);
+    const standaloneTimed = !primary && looksLikeStandaloneTimedService(name);
+    const ref = lineItemReference(it);
+
+    let startNew = false;
+    if(!current) startNew = true;
+    else if(ref && current.reference) startNew = ref !== current.reference;
+    else if(ref && !current.reference) startNew = true;
+    else if(!ref && current.reference) startNew = true;
+    else if(primary || standaloneTimed) startNew = true;
+
+    const groupIsService = primary && !standaloneTimed;
+
+    if(startNew){
+      current = {
+        name: groupIsService ? canonicalServiceName(name) : name,
+        total: 0,
+        ex: 0,
+        tax: 0,
+        rows: [],
+        kind: groupIsService ? 'service' : 'general',
+        display: null,
+        reference: ref
+      };
+      groups.push(current);
+    } else if(groupIsService && current.kind !== 'service'){
+      current.kind = 'service';
+      current.name = canonicalServiceName(name);
+    }
+
+    const rowType = (primary || standaloneTimed || !current.rows.length) ? 'primary' : 'addon';
+    current.total += inc;
+    current.ex += ex;
+    current.tax += tax;
+    current.rows.push({name,amount:inc,ex,tax,type:rowType,reference:ref});
   }
+
   for(const g of groups){
     g.display = g.kind === 'service' ? serviceDisplayAmounts(g.ex) : { before: g.ex, gst: g.tax, after: g.total };
   }
-  return groups.sort((a,b)=>{
-    const aService = a.kind === 'service';
-    const bService = b.kind === 'service';
-    if(aService && bService){
-      const aid = serverSortId(a.name);
-      const bid = serverSortId(b.name);
-      if(aid !== bid) return aid - bid;
-    }
-    if(aService !== bService) return aService ? -1 : 1;
-    return 0;
-  });
+  return groups;
 }
 
 function renderList(){
@@ -437,8 +488,9 @@ function renderList(){
     const groups=groupLineItems(inv.invoice_items||[], taxModel);
     const groupHtml=groups.map(g=>{
       const primary=g.rows.filter(r=>r.type==='primary').map(r=>`<div class="li-row"><div class="li-name">${esc(r.name)}</div><div class="li-amt">${taxModel.ok?markedAmount(r.amount,r.ex,r.tax):money(r.amount)}</div></div>`).join('');
-      const addons=g.rows.filter(r=>r.type!=='primary').map(r=>`<div class="li-row addon-row"><div class="li-name">${esc(r.name)} <span class="tiny-tag">add-on</span></div><div class="li-amt">${taxModel.ok?markedAmount(r.amount,r.ex,r.tax):money(r.amount)}</div></div>`).join('');
-      const addonCount=g.rows.filter(r=>r.type!=='primary').length;
+      const addonRows = g.kind === 'service' ? g.rows.filter(r=>r.type!=='primary') : [];
+      const addons=addonRows.map(r=>`<div class="li-row addon-row"><div class="li-name">${esc(r.name)} <span class="tiny-tag">add-on</span></div><div class="li-amt">${taxModel.ok?markedAmount(r.amount,r.ex,r.tax):money(r.amount)}</div></div>`).join('');
+      const addonCount=addonRows.length;
       const addonBlock = addonCount ? `<details class="addon-toggle-wrap"><summary class="addon-toggle"><span class="label-show">Show add-ons</span><span class="label-hide">Hide add-ons</span> <span class="addon-count">(${addonCount})</span></summary><div class="addon-list">${addons}</div></details>` : '';
       const groupDisplay = g.display || { before: g.ex, gst: g.tax, after: g.total };
       const groupMeta = g.kind === 'service' ? { kind:'grouped-service', ...groupDisplay } : null;

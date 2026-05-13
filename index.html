@@ -105,7 +105,7 @@
       <section class="card">
         <h2>Server Cost Query</h2>
         <p class="small notice">Fetch loads all invoices first. Date filters are optional; leave blank to query all time.</p>
-        <p class="small">Groups are inferred from invoice_items order: server line starts a group; following add-ons belong to that server until next server line.</p>
+        <p class="small">Groups preserve invoice_items order. Consecutive rows with the same line-item reference stay together; standalone account charges remain separate.</p>
         <p class="small">Server list order prefers BinaryLane server IDs when available, with observed invoice order used as a fallback.</p>
         <div class="row wrap">
           <label class="server-picker">Server

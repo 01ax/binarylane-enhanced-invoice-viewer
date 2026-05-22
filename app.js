@@ -8,7 +8,8 @@ const state = {
   queryRows: [], serverStatus: new Map(),
   serverOrder: [],
   serverIdByName: new Map(),
-  serverGstMode: 'reconciled'
+  serverGstMode: 'reconciled',
+  invoiceGroupServices: true
 };
 let idleTimer;
 
@@ -417,7 +418,73 @@ function lineItemReference(it){
   return s || null;
 }
 
-function groupLineItems(items, taxModel){
+function mergeServiceLineGroups(groups){
+  const merged = [];
+  const byService = new Map();
+  let lastService = null;
+
+  for(const g of groups){
+    const generalName = g.name.trim().toLowerCase();
+    if(g.kind !== 'service' && lastService && generalName.startsWith(`${lastService.name.trim().toLowerCase()} `)){
+      lastService.total += g.total;
+      lastService.ex += g.ex;
+      lastService.tax += g.tax;
+      if(g.reference) lastService.references.add(g.reference);
+      lastService.rows.push(...g.rows.map(r=>({
+        ...r,
+        type: 'addon',
+        sourceGroupNumber: lastService.sourceGroupCount,
+        mergedServiceRow: true
+      })));
+      continue;
+    }
+
+    if(g.kind !== 'service'){
+      merged.push(g);
+      continue;
+    }
+
+    const key = g.name.trim().toLowerCase();
+    let rec = byService.get(key);
+    if(!rec){
+      rec = {
+        ...g,
+        total: 0,
+        ex: 0,
+        tax: 0,
+        rows: [],
+        display: null,
+        sourceGroupCount: 0,
+        references: new Set()
+      };
+      byService.set(key, rec);
+      merged.push(rec);
+    }
+
+    rec.sourceGroupCount += 1;
+    rec.total += g.total;
+    rec.ex += g.ex;
+    rec.tax += g.tax;
+    if(g.reference) rec.references.add(g.reference);
+    rec.rows.push(...g.rows.map(r=>({
+      ...r,
+      sourceGroupNumber: rec.sourceGroupCount,
+      mergedServiceRow: true
+    })));
+    lastService = rec;
+  }
+
+  for(const g of merged){
+    if(g.kind !== 'service') continue;
+    g.reference = g.references?.size === 1 ? [...g.references][0] : null;
+    g.display = serviceDisplayAmounts(g.ex);
+    delete g.references;
+  }
+
+  return merged;
+}
+
+function groupLineItems(items, taxModel, options={}){
   const groups=[];
   let current=null;
 
@@ -468,7 +535,7 @@ function groupLineItems(items, taxModel){
   for(const g of groups){
     g.display = g.kind === 'service' ? serviceDisplayAmounts(g.ex) : { before: g.ex, gst: g.tax, after: g.total };
   }
-  return groups;
+  return options.mergeServices ? mergeServiceLineGroups(groups) : groups;
 }
 
 function renderList(){
@@ -485,7 +552,7 @@ function renderList(){
   const start=(page-1)*perPage; const slice=sorted.slice(start,start+perPage);
   box.innerHTML = slice.map(inv=>{
     const taxModel = buildTaxModel(inv);
-    const groups=groupLineItems(inv.invoice_items||[], taxModel);
+    const groups=groupLineItems(inv.invoice_items||[], taxModel, { mergeServices: state.invoiceGroupServices });
     const groupHtml=groups.map(g=>{
       const primary=g.rows.filter(r=>r.type==='primary').map(r=>`<div class="li-row"><div class="li-name">${esc(r.name)}</div><div class="li-amt">${taxModel.ok?markedAmount(r.amount,r.ex,r.tax):money(r.amount)}</div></div>`).join('');
       const addonRows = g.kind === 'service' ? g.rows.filter(r=>r.type!=='primary') : [];
@@ -494,7 +561,8 @@ function renderList(){
       const addonBlock = addonCount ? `<details class="addon-toggle-wrap"><summary class="addon-toggle"><span class="label-show">Show add-ons</span><span class="label-hide">Hide add-ons</span> <span class="addon-count">(${addonCount})</span></summary><div class="addon-list">${addons}</div></details>` : '';
       const groupDisplay = g.display || { before: g.ex, gst: g.tax, after: g.total };
       const groupMeta = g.kind === 'service' ? { kind:'grouped-service', ...groupDisplay } : null;
-      return `<div class="li-group ${g.kind}"><div class="li-group-head"><div class="li-group-name">${esc(g.name)}</div><div class="li-group-total">${markedAmount(groupDisplay.after,groupDisplay.before,groupDisplay.gst,groupMeta)}</div></div><div class="li-group-body">${primary}${addonBlock}</div></div>`;
+      const groupNote = g.sourceGroupCount > 1 ? `<div class="li-group-subtitle">${g.sourceGroupCount} invoice line groups combined.</div>` : '';
+      return `<div class="li-group ${g.kind} ${g.sourceGroupCount>1?'merged-service':''}"><div class="li-group-head"><div><div class="li-group-name">${esc(g.name)}</div>${groupNote}</div><div class="li-group-total">${markedAmount(groupDisplay.after,groupDisplay.before,groupDisplay.gst,groupMeta)}</div></div><div class="li-group-body">${primary}${addonBlock}</div></div>`;
     }).join('');
 
     const lineSubtotalDisplay = taxModel.ok ? dec(taxModel.subtotal + taxModel.tax) : (inv.invoice_items||[]).reduce((a,it)=>a+Number(it.amount||0),0);
@@ -797,6 +865,10 @@ async function onFetch(){
     $('toggleKey').setAttribute('aria-label', el.type==='password'?'Show API key':'Hide API key');
     $('toggleKey').setAttribute('title', el.type==='password'?'Show API key':'Hide API key'); });
   $('range').addEventListener('change', applyFilters); $('search').addEventListener('input', applyFilters);
+  $('invoiceGroupServices')?.addEventListener('change', ()=>{
+    state.invoiceGroupServices = !!$('invoiceGroupServices')?.checked;
+    renderList();
+  });
   $('viewPerPage').addEventListener('change', ()=>{ $('viewPage').value='1'; renderList(); });
   $('applyViewPage').addEventListener('click', renderList);
   $('tabInvoices')?.addEventListener('click', ()=>setActiveTab('invoices')); $('tabServer')?.addEventListener('click', ()=>setActiveTab('server'));

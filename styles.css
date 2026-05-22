@@ -51,6 +51,7 @@ th, td { padding: 6px; border-bottom: 1px solid #2a3340; text-align:left; vertic
 .li-group { border:1px solid #2a3340; border-radius:8px; background:#0f141c; margin-bottom: 12px; }
 .li-group-head { display:grid; grid-template-columns: 1fr auto; gap:8px; padding:8px 10px; border-bottom:1px solid #243042; background:#121a25; }
 .li-group-name { font-weight:600; }
+.li-group-subtitle { margin-top:3px; color:#8ea0b3; font-size:12px; font-weight:400; }
 .li-group-total { font-weight:700; color:#9fe8b4; }
 .li-group-body { padding: 6px 10px; }
 .li-row { display:grid; grid-template-columns: 1fr auto; gap:10px; padding:6px 0; border-bottom:1px dashed #243042; }
@@ -85,6 +86,18 @@ th, td { padding: 6px; border-bottom: 1px solid #2a3340; text-align:left; vertic
 .addon-toggle { display:inline-block; font-size:12px; color:#9ec5ff; border:1px solid #335b8a; border-radius:999px; padding:3px 10px; cursor:pointer; user-select:none; background:#0b1624; }
 .addon-list { margin-top: 8px; padding-top: 6px; border-top:1px dashed #2f4058; }
 .addon-row { background: rgba(120,170,255,0.06) !important; }
+.li-group.merged-service { border-color:#42668d; }
+.li-group.merged-service .li-group-head { background:#152235; }
+.li-row.component-row {
+  margin-left:18px;
+  border-left:3px solid #355b82;
+  border-radius:0 8px 8px 0;
+}
+.li-row.service-period-row { background: rgba(159,232,180,0.055) !important; }
+.merged-addon-list {
+  margin-left:18px;
+  padding-left:0;
+}
 
 
 .addon-toggle .label-hide { display:none; }
@@ -370,3 +383,13 @@ th, td { padding: 6px; border-bottom: 1px solid #2a3340; text-align:left; vertic
 
 .key-actions { display:flex; align-items:center; width:100%; }
 .key-actions #clearBtn { margin-left:auto; }
+
+.switch-label {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 2px;
+  white-space:nowrap;
+}
+.switch-label input { min-width:0; }

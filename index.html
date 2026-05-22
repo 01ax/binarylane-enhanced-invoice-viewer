@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BinaryLane Invoice Viewer v5</title>
+  <title>BinaryLane Invoice Viewer v6</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <main class="container">
     <div class="row" style="justify-content:space-between; align-items:flex-start; gap:12px;">
       <div>
-        <h1>BinaryLane Invoice Viewer v5</h1>
+        <h1>BinaryLane Invoice Viewer v6</h1>
         <p class="small">Developed by <a href="https://github.com/01ax" target="_blank" rel="noopener noreferrer">01ax</a>.</p>
       </div>
       <button id="helpBtn" type="button" class="secondary">Help</button>
@@ -58,6 +58,10 @@
           </label>
           <label>Search
             <input id="search" type="text" placeholder="invoice number / item text" />
+          </label>
+          <label class="switch-label" title="Combines repeated service/date-range line groups under one service heading while keeping add-ons/backups behind the existing disclosure.">
+            <input type="checkbox" id="invoiceGroupServices" checked />
+            <span>Group same services</span>
           </label>
         </div>
         <div class="stats" id="stats"></div>
